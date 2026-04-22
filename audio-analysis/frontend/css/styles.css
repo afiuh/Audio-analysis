@@ -1,0 +1,573 @@
+/**
+ * 录音分析工具 - 样式表
+ * 采用温暖羊皮纸设计风格 (DESIGN.md)
+ */
+
+:root {
+  --parchment: #f5f4ed;
+  --ivory: #faf9f5;
+  --near-black: #141413;
+  --terracotta: #c96442;
+  --coral: #d97757;
+  --olive-gray: #5e5d59;
+  --stone-gray: #87867f;
+  --warm-sand: #e8e6dc;
+  --border-cream: #f0eee6;
+  --dark-surface: #30302e;
+  --warm-silver: #b0aea5;
+  --success-green: #28a745;
+  --error-red: #b53333;
+  --shadow-whisper: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: var(--parchment);
+  color: var(--near-black);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+/* ========== Header ========== */
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 40px 0;
+}
+
+.header-pet {
+  margin-bottom: 20px;
+}
+
+.header-pet svg {
+  width: 80px;
+  height: 80px;
+}
+
+.header h1 {
+  font-family: "Noto Serif SC", Georgia, serif;
+  font-size: 2.75rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}
+
+.header p {
+  color: var(--olive-gray);
+  font-size: 1.125rem;
+}
+
+/* ========== Cards ========== */
+.card {
+  background: var(--ivory);
+  border: 1px solid var(--border-cream);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-whisper);
+}
+
+.card-title {
+  font-family: "Noto Serif SC", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ========== Folder Info ========== */
+.folder-info {
+  background: var(--warm-sand);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 0.9375rem;
+  color: var(--olive-gray);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.folder-info svg {
+  flex-shrink: 0;
+}
+
+.folder-info code {
+  background: var(--ivory);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--near-black);
+}
+
+/* ========== Buttons ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--terracotta);
+  color: var(--ivory);
+  box-shadow: 0px 0px 0px 1px var(--terracotta);
+}
+
+.btn-primary:hover {
+  background: var(--coral);
+}
+
+.btn-primary:disabled {
+  background: var(--stone-gray);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: var(--warm-sand);
+  color: var(--near-black);
+}
+
+.btn-secondary:hover {
+  background: #dedbd0;
+}
+
+.btn-success {
+  background: var(--success-green);
+  color: white;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  border-radius: 8px;
+}
+
+/* ========== File List ========== */
+.file-list {
+  margin-top: 16px;
+  max-height: 450px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border-cream);
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-cream);
+  transition: background 0.15s ease;
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+.file-item:hover {
+  background: rgba(201, 100, 66, 0.03);
+}
+
+.file-item.selected {
+  background: rgba(201, 100, 66, 0.08);
+}
+
+.file-item.processing {
+  background: rgba(201, 100, 66, 0.06);
+}
+
+.file-item.completed {
+  background: rgba(40, 167, 69, 0.06);
+}
+
+.file-item.failed {
+  background: rgba(181, 51, 51, 0.06);
+}
+
+.file-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  font-size: 0.875rem;
+  color: var(--stone-gray);
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+/* ========== Status Badge ========== */
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  min-width: 90px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.status-pending {
+  background: var(--warm-sand);
+  color: var(--olive-gray);
+}
+
+.status-processing {
+  background: var(--terracotta);
+  color: white;
+}
+
+.status-completed {
+  background: rgba(40, 167, 69, 0.15);
+  color: #155724;
+}
+
+.status-failed {
+  background: rgba(181, 51, 51, 0.15);
+  color: var(--error-red);
+}
+
+/* ========== Checkbox ========== */
+.file-checkbox {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: var(--terracotta);
+}
+
+/* ========== Progress Section ========== */
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.progress-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.progress-stat {
+  text-align: center;
+}
+
+.progress-stat-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--terracotta);
+  font-family: "Noto Serif SC", Georgia, serif;
+}
+
+.progress-stat-label {
+  font-size: 0.8125rem;
+  color: var(--stone-gray);
+}
+
+/* ========== Overall Progress ========== */
+.overall-progress {
+  background: var(--warm-sand);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.overall-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.overall-progress-label {
+  font-weight: 500;
+}
+
+.overall-progress-percent {
+  font-weight: 600;
+  color: var(--terracotta);
+  font-size: 1.125rem;
+}
+
+.progress-bar-container {
+  background: var(--ivory);
+  border-radius: 8px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--terracotta), var(--coral));
+  border-radius: 8px;
+  transition: width 0.3s ease;
+}
+
+.progress-time {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--stone-gray);
+}
+
+/* ========== Processing Detail ========== */
+.processing-detail {
+  margin-top: 8px;
+  padding: 12px 16px;
+  background: rgba(201, 100, 66, 0.06);
+  border-radius: 8px;
+}
+
+.stage-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stage-step {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-cream);
+  transition: background 0.3s ease;
+}
+
+.stage-step.active {
+  background: var(--terracotta);
+}
+
+.stage-step.completed {
+  background: var(--success-green);
+}
+
+.stage-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--stone-gray);
+}
+
+.time-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: var(--terracotta);
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+/* ========== Stats Grid ========== */
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-item {
+  background: var(--parchment);
+  border: 1px solid var(--border-cream);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--terracotta);
+  font-family: "Noto Serif SC", Georgia, serif;
+}
+
+.stat-label {
+  color: var(--olive-gray);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+/* ========== Actions ========== */
+.batch-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.select-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.selected-count {
+  margin-left: auto;
+  color: var(--olive-gray);
+  font-size: 0.9375rem;
+}
+
+/* ========== States ========== */
+.hidden {
+  display: none !important;
+}
+
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--olive-gray);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-cream);
+  border-top-color: var(--terracotta);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  color: var(--stone-gray);
+}
+
+.error-message {
+  background: rgba(181, 51, 51, 0.1);
+  color: var(--error-red);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .result-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .progress-stats {
+    gap: 16px;
+  }
+
+  .progress-stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+/* ========== Pet Icons ========== */
+.pet-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-block;
+  image-rendering: pixelated;
+}
+
+.file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 0;
+}
+
+.file-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+/* 宠物动画 */
+@keyframes pet-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes pet-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.pet-working {
+  animation: pet-bounce 0.3s ease-in-out infinite;
+}
+
+.pet-happy {
+  animation: pet-bounce 0.3s ease-in-out infinite;
+}
+
+.pet-error {
+  opacity: 0.8;
+}
+
+/* 进度卡片中的大宠物 */
+.progress-pet {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+}
+
+.progress-pet svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}

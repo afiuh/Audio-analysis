@@ -1,0 +1,22 @@
+# 环境变量（不推送）
+.env
+.env.*
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 导出的报告（根据需要决定是否忽略）
+# backend/exports/
