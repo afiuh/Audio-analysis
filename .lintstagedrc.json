@@ -1,0 +1,15 @@
+﻿{
+  "*.js": [
+    "eslint --fix",
+    "git add"
+  ],
+  "*.html": [
+    "eslint --fix",
+    "git add"
+  ],
+  "*.py": [
+    "black",
+    "flake8",
+    "git add"
+  ]
+}

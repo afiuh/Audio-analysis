@@ -1,0 +1,34 @@
+﻿{
+  "name": "template-meta-action-v1.9",
+  "version": "1.0.0",
+  "description": "代码语义元动作体系 v1.9 标准模板 (全语言)",
+  "main": "js/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "promote": "node scripts/promote-experience.js"
+  },
+  "keywords": ["meta-action", "template", "v1.9"],
+  "author": "Chen Yiling",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.html": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.py": [
+      "black",
+      "flake8",
+      "git add"
+    ]
+  }
+}
