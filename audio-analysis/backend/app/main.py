@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 # [M5 转换] FastAPI 导入
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 # [M5 转换] 项目内部导入
@@ -65,6 +66,12 @@ app.add_middleware(
 
 # [M5 转换] 注册路由
 app.include_router(audio.router)
+
+# [M13 资源] 挂载静态文件目录（前端页面）
+import os
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 
 @app.get("/", tags=["health"])

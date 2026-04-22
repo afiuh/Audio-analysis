@@ -55,23 +55,28 @@ pip install -r requirements.txt
 ### 4. 启动服务
 
 ```bash
-# 使用 Python 3.12
-py -3.12 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+# 方式一：使用启动脚本
+双击运行 backend/start.bat 或 backend/start.ps1
+
+# 方式二：手动启动（Python 3.12）
+cd backend
+py -3.12 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 服务启动后访问：
+- **前端界面**: http://localhost:8000
 - **API 文档**: http://localhost:8000/docs
-- **前端界面**: 直接打开 `frontend/index.html`
 
-> 注意：前端通过 fetch 调用 API，需确保后端运行在 localhost:8000
+> 注意：前端通过 fetch 调用 API，必须通过 http://localhost:8000 访问，不能直接双击打开 index.html 文件
 
 ## 使用流程
 
-1. 打开 `frontend/index.html`
-2. 拖拽或选择音频文件（MP3/WAV）
-3. 点击「上传并开始分析」
-4. 等待处理完成，实时查看进度（已用时、预估剩余时间）
-5. 处理完成后，点击「打开报告」复制报告文件夹路径
+1. 启动后端服务（见上方「快速开始」）
+2. 访问 http://localhost:8000 打开前端界面
+3. 拖拽或选择音频文件（MP3/WAV）
+4. 点击「上传并开始分析」
+5. 等待处理完成，实时查看进度（已用时、预估剩余时间）
+6. 处理完成后，点击「打开报告」复制报告文件夹路径
 
 ## 项目结构
 
