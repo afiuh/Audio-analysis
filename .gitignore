@@ -1,17 +1,14 @@
-﻿node_modules/
-dist/
-.DS_Store
-*.log
+﻿*
+!.gitignore
+!audio-analysis/
+!README.md
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-.venv/
-*.egg-info/
-dist/
-build/
+audio-analysis/__pycache__/
+audio-analysis/*.pyc
+audio-analysis/.env
+audio-analysis/backend/__pycache__/
+audio-analysis/backend/*.pyc
+audio-analysis/backend/exports/
+audio-analysis/backend/models/
+audio-analysis/frontend/node_modules/
+
