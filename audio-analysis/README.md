@@ -123,7 +123,7 @@ audio-analysis/
 |---|---|---|
 | `DEEPSEEK_API_KEY` | - | DeepSeek API 密钥（必需） |
 | `DEEPSEEK_BASE_URL` | https://api.deepseek.com | API 端点 |
-| `DEEPSEEK_MODEL` | deepseek-chat | 使用的模型 |
+| `DEEPSEEK_MODEL` | deepseek-v4-flash | 使用的模型 |
 | `FUNASR_MODEL` | paraformer-zh | FunASR 模型 |
 
 ## FunASR vs Whisper

@@ -33,7 +33,7 @@ class Settings(BaseSettings):
         description="DeepSeek API 端点"
     )
     DEEPSEEK_MODEL: str = Field(
-        default="deepseek-chat",
+        default="deepseek-v4-flash",
         description="DeepSeek 模型名称"
     )
 
