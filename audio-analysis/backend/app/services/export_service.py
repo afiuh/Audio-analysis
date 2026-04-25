@@ -23,8 +23,11 @@ def to_simplified(text: str) -> str:
     return _cc.convert(text)
 
 
-# [I15 存储] 导出目录配置
+# [I15 存储] 导出目录配置（默认本地，配置后可自动同步到指定目录）
 EXPORT_DIR = Path("exports")
+
+# [I15 存储] 自动备份目录（生成 MD 后同时复制到此目录）
+AUTO_BACKUP_DIR = Path("E:/数据记录/录音/已归纳")
 
 
 def build_markdown(task_id: str, original_text: str, corrections: List[CorrectionResult]) -> str:
@@ -105,6 +108,16 @@ def save_markdown(task_id: str, original_text: str, corrections: List[Correction
     try:
         file_path.write_text(md_content, encoding="utf-8")
         logging.info(f"Markdown 文件已保存: {file_path}")
+
+        # [I15 存储] 自动备份到指定目录
+        try:
+            AUTO_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+            backup_path = AUTO_BACKUP_DIR / safe_filename
+            file_path.copy_to(backup_path)
+            logging.info(f"已自动备份到: {backup_path}")
+        except Exception as backup_err:
+            # 备份失败不影响主流程，只记录警告
+            logging.warning(f"自动备份失败（非致命）: {backup_err}")
 
     except IOError as e:
         logging.error(f"写入 Markdown 文件失败: {e}")
