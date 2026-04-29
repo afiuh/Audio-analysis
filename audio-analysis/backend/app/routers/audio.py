@@ -391,7 +391,7 @@ async def download_markdown(task_id: str):
 
 
 # 监控文件夹路径（可配置）
-WATCH_FOLDER = Path("E:/数据记录/录音/未解析")
+WATCH_FOLDER = Path("E:/shuju-jilu/录音/未解析")
 
 
 @router.get("/folder/files")

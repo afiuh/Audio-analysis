@@ -23,11 +23,23 @@ def to_simplified(text: str) -> str:
     return _cc.convert(text)
 
 
+# [I16 通信] 延迟导入修正服务（避免循环导入）
+_correction_service = None
+
+def get_correction_service():
+    """延迟导入修正服务模块"""
+    global _correction_service
+    if _correction_service is None:
+        from ..services import correction_service
+        _correction_service = correction_service
+    return _correction_service
+
+
 # [I15 存储] 导出目录配置（默认本地，配置后可自动同步到指定目录）
 EXPORT_DIR = Path("exports")
 
 # [I15 存储] 自动备份目录（生成 MD 后同时复制到此目录）
-AUTO_BACKUP_DIR = Path("E:/数据记录/录音/已归纳")
+AUTO_BACKUP_DIR = Path("E:/shuju-jilu/录音/已归纳")
 
 
 def build_markdown(task_id: str, original_text: str, corrections: List[CorrectionResult]) -> str:
@@ -94,8 +106,8 @@ def save_markdown(task_id: str, original_text: str, corrections: List[Correction
         logging.error(f"创建导出目录失败: {e}")
         raise RuntimeError(f"创建导出目录失败: {e}")
 
-    # [M5 转换] 生成文件名（使用时间戳）
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # [M5 转换] 生成文件名（使用时间戳，格式：年月日时分）
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     safe_filename = f"analysis_{timestamp}.md"
 
     # [I15 存储] 构建 MD 内容
@@ -109,11 +121,24 @@ def save_markdown(task_id: str, original_text: str, corrections: List[Correction
         file_path.write_text(md_content, encoding="utf-8")
         logging.info(f"Markdown 文件已保存: {file_path}")
 
+        # [I16 通信] 调用 AI 进行整体分析
+        try:
+            correction_svc = get_correction_service()
+            full_analysis = correction_svc.analyze_full_document(md_content, original_text)
+            if full_analysis:
+                # 将整体分析追加到文件末尾
+                md_content_with_analysis = md_content + full_analysis
+                file_path.write_text(md_content_with_analysis, encoding="utf-8")
+                logging.info(f"整体分析已添加到报告末尾")
+        except Exception as analysis_err:
+            logging.warning(f"整体分析失败（非致命）: {analysis_err}")
+
         # [I15 存储] 自动备份到指定目录
         try:
             AUTO_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
             backup_path = AUTO_BACKUP_DIR / safe_filename
-            file_path.copy_to(backup_path)
+            import shutil
+            shutil.copy2(file_path, backup_path)
             logging.info(f"已自动备份到: {backup_path}")
         except Exception as backup_err:
             # 备份失败不影响主流程，只记录警告

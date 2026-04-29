@@ -37,6 +37,20 @@ class Settings(BaseSettings):
         description="DeepSeek 模型名称"
     )
 
+    # [I15 存储] DeepSeek 审核/分析 API 配置（用于 JSON 修复和整体分析）
+    REVIEW_API_KEY: str = Field(
+        default="",
+        description="DeepSeek 审核 API 密钥（可选，用于 JSON 修复和整体分析）"
+    )
+    REVIEW_BASE_URL: str = Field(
+        default="https://api.deepseek.com",
+        description="DeepSeek 审核 API 端点"
+    )
+    REVIEW_MODEL: str = Field(
+        default="deepseek-v4-flash",
+        description="DeepSeek 审核模型名称"
+    )
+
     # FunASR 模型配置
     FUNASR_MODEL: str = Field(
         default="paraformer-zh",
