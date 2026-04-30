@@ -115,16 +115,55 @@ def load_settings(env_file: Optional[str] = ".env") -> Settings:
 # [M5 转换] 全局配置实例
 # 延迟加载，避免启动时立即读取 .env
 _settings: Optional[Settings] = None
+_config_mtime: float = 0  # 配置文件修改时间
 
 
-def get_settings() -> Settings:
+def get_settings(force_reload: bool = False) -> Settings:
     """
     # [M5 转换] 获取全局配置单例
+
+    Args:
+        force_reload: 是否强制重新加载配置（热更新）
 
     Returns:
         Settings: 应用配置实例
     """
-    global _settings
-    if _settings is None:
-        _settings = load_settings()
+    global _settings, _config_mtime
+
+    if _settings is None or force_reload:
+        # 检查 .env 文件是否已修改（热更新支持）
+        env_file = ".env"
+        if os.path.exists(env_file):
+            current_mtime = os.path.getmtime(env_file)
+            if force_reload or current_mtime > _config_mtime:
+                logging.info("检测到配置文件更新，正在重新加载...")
+                _config_mtime = current_mtime
+                _settings = load_settings(env_file)
+                return _settings
+
+        if _settings is None:
+            _settings = load_settings()
+
     return _settings
+
+
+def reload_settings() -> Settings:
+    """
+    # [M5 转换] 强制重新加载配置（用于热更新）
+
+    Returns:
+        Settings: 重新加载后的配置实例
+    """
+    global _settings, _config_mtime, _client, _review_client
+    _settings = None
+    _config_mtime = 0
+    # 重置客户端，下次调用时会重新初始化
+    import sys
+    if 'app.services.correction_service' in sys.modules:
+        from ..services import correction_service
+        correction_service.reset_client()
+    return get_settings(force_reload=True)
+
+
+# 添加 os 导入用于文件监控
+import os

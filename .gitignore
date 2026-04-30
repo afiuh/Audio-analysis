@@ -1,7 +1,8 @@
 ﻿*
 !.gitignore
-!audio-analysis/
 !README.md
+!audio-analysis/**
+!docs/
 
 audio-analysis/__pycache__/
 audio-analysis/*.pyc
@@ -9,6 +10,7 @@ audio-analysis/.env
 audio-analysis/backend/__pycache__/
 audio-analysis/backend/*.pyc
 audio-analysis/backend/exports/
+audio-analysis/backend/logs/
 audio-analysis/backend/models/
 audio-analysis/frontend/node_modules/
 

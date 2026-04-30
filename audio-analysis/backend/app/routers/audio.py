@@ -1,13 +1,16 @@
 # [I14 用户输入] 音频处理 API 路由模块
 """
-提供音频文件上传、转写、修正和下载的 API 路由。
+提供音频文件上传、转写、修正和下载的 API 接口。
 """
 
 import logging
+import os
+import traceback
 import threading
 import uuid
 from pathlib import Path
 from typing import Dict, Optional
+from datetime import datetime
 
 # [I14 用户输入] FastAPI 导入
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -23,6 +26,49 @@ from ..services import correction_service
 from ..services import export_service
 from ..services import stt_service
 from ..utils import file_handler
+
+
+# 日志目录
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+
+
+def _save_task_error_log(task_id: str, stage: str, error: Exception, context: dict = None):
+    """
+    保存任务错误日志到专门的文件
+
+    Args:
+        task_id: 任务ID
+        stage: 失败阶段
+        error: 异常对象
+        context: 额外上下文信息
+    """
+    error_details = f"""
+========== 任务执行错误 ==========
+时间: {datetime.now().isoformat()}
+任务ID: {task_id}
+失败阶段: {stage}
+异常类型: {type(error).__name__}
+异常消息: {str(error)}
+
+上下文信息:
+{context or '无'}
+
+完整堆栈:
+{traceback.format_exc()}
+
+==================================
+"""
+    logging.error(error_details)
+
+    # 保存到专门的错误日志文件
+    error_log_path = os.path.join(LOG_DIR, f"task_error_{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        with open(error_log_path, 'w', encoding='utf-8') as f:
+            f.write(error_details)
+        logging.info(f"任务错误日志已保存: {error_log_path}")
+    except Exception as e:
+        logging.error(f"写入任务错误日志失败: {e}")
 
 
 # [I15 存储] 任务存储 (内存字典，生产环境应使用数据库)
@@ -207,6 +253,18 @@ def _background_process(task_id: str, file_path: str):
     except Exception as e:
         logging.error(f"后台处理失败: {e}")
         stop_progress_flag["stop"] = True
+        
+        # 保存详细错误日志
+        _save_task_error_log(
+            task_id=task_id,
+            stage="后台处理",
+            error=e,
+            context={
+                "file_path": file_path,
+                "current_progress": _progress.get(task_id, {})
+            }
+        )
+        
         task = _tasks.get(task_id)
         if task:
             task.status = "failed"

@@ -6,7 +6,87 @@
 import json
 import logging
 import re
+import time
+import threading
 from typing import List, Optional
+from collections import defaultdict
+
+# [I16 通信] 并发控制 - 信号量限制同时进行的 API 调用数
+# DeepSeek API 通常限制每分钟请求数，设置 3 个并发可以有效避免限流
+_api_semaphore = threading.Semaphore(3)
+
+# [I16 通信] 限流保护 - 滑动窗口限流器
+class RateLimiter:
+    """
+    # [I16 通信] 基于滑动窗口的限流器
+
+    支持按时间窗口限制请求频率，避免 API 限流
+    """
+    def __init__(self, max_requests: int = 20, window_seconds: int = 60):
+        """
+        Args:
+            max_requests: 窗口内最大请求数
+            window_seconds: 时间窗口大小（秒）
+        """
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests: List[float] = []
+        self._lock = threading.Lock()
+
+    def acquire(self, timeout: float = 60.0) -> bool:
+        """
+        获取限流令牌
+
+        Args:
+            timeout: 最大等待时间（秒）
+
+        Returns:
+            bool: 是否获取成功
+        """
+        start_time = time.time()
+
+        while True:
+            with self._lock:
+                now = time.time()
+                # 清理过期的请求记录
+                self.requests = [t for t in self.requests if now - t < self.window_seconds]
+
+                if len(self.requests) < self.max_requests:
+                    # 还有额度，立即获取
+                    self.requests.append(now)
+                    return True
+
+            # 等待一小段时间后重试
+            if time.time() - start_time >= timeout:
+                return False
+            time.sleep(0.5)
+
+    def release(self):
+        """释放令牌（通常不需要调用）"""
+        pass
+
+    def get_wait_time(self) -> float:
+        """
+        获取需要等待的时间
+
+        Returns:
+            float: 还需要等待的秒数
+        """
+        with self._lock:
+            now = time.time()
+            self.requests = [t for t in self.requests if now - t < self.window_seconds]
+
+            if len(self.requests) < self.max_requests:
+                return 0.0
+
+            # 计算还需要等待的时间
+            oldest = min(self.requests)
+            return max(0.0, self.window_seconds - (now - oldest))
+
+
+# [I16 通信] 全局限流器实例
+# DeepSeek 免费版通常限制 60 请求/分钟，我们设置 20/分钟 留有余量
+_rate_limiter = RateLimiter(max_requests=20, window_seconds=60)
 
 
 def _sanitize_json_text(text: str) -> str:
@@ -42,7 +122,7 @@ def _try_parse_json(content: str) -> Optional[dict]:
     
     清理策略：
     1. 去掉 markdown 代码块包裹
-    2. 提取有效 JSON 范围
+    2. 提取第一个完整的 JSON 对象（支持处理重复 JSON 输出）
     3. 清理末尾的 \' 等无效转义序列
     4. 清理不完整 JSON（如被截断的情况）
     5. 移除未转义换行符
@@ -73,14 +153,46 @@ def _try_parse_json(content: str) -> Optional[dict]:
     content = content.replace('"', '"').replace('"', '"')
     content = content.replace(''', "'").replace(''', "'")
     
-    # 3. 提取有效的 JSON 范围（第一个 { 到最后一个 }）
+    # 3. 提取第一个完整的 JSON 对象（通过括号配对追踪）
     json_start = content.find('{')
-    json_end = content.rfind('}')
-    
-    if json_start == -1 or json_end == -1 or json_end <= json_start:
+    if json_start == -1:
         return None
     
-    json_str = content[json_start:json_end + 1]
+    # 使用栈追踪括号，找到第一个完整的 { ... } 对象
+    json_str = None
+    brace_count = 0
+    in_string = False
+    escape_next = False
+    
+    for i in range(json_start, len(content)):
+        c = content[i]
+        
+        if escape_next:
+            escape_next = False
+            continue
+        
+        if c == '\\' and in_string:
+            escape_next = True
+            continue
+        
+        if c == '"' and not escape_next:
+            in_string = not in_string
+            continue
+        
+        if in_string:
+            continue
+        
+        if c == '{':
+            brace_count += 1
+        elif c == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                # 找到第一个完整的 JSON 对象
+                json_str = content[json_start:i + 1]
+                break
+    
+    if json_str is None:
+        return None
     
     # 4. 清理末尾的无效转义序列（如 \'、\" 等导致解析失败）
     # 这些通常出现在有效 JSON 后被 AI 附加的说明文字中
@@ -89,10 +201,16 @@ def _try_parse_json(content: str) -> Optional[dict]:
     # 也清理可能残留的孤立反斜杠结尾
     json_str = re.sub(r'\\[^\"\\\\/bfnrtu]*$', '', json_str)
     
-    # 5. 清理 HTML 标签等非 JSON 内容（如果还在有效范围内）
+    # 5. 修复字符串内部的 \' （AI 常犯的错误，把 \' 改成 '）
+    # 使用更精确的替换：只在 \' 前面不是反斜杠时替换
+    json_str = json_str.replace("\\'", "'")
+    
+    # 6. 清理 HTML 标签等非 JSON 内容（如果还在有效范围内）
     html_end = json_str.rfind('</')
-    if html_end > 0 and html_end > json_str.rfind('}'):
-        json_str = json_str[:html_end]
+    if html_end > 0:
+        closing_brace = json_str.rfind('}')
+        if html_end > closing_brace:
+            json_str = json_str[:html_end]
     
     # 6. 移除未转义换行符（JSON 字符串内不能有裸换行）
     json_str = re.sub(r'(?<!\\)\n', ' ', json_str)
@@ -207,20 +325,41 @@ from ..models.schemas import CorrectionResult
 # [I16 通信] 全局客户端单例
 _client: OpenAI = None
 _review_client: OpenAI = None
+_client_config_hash: str = ""  # 配置哈希，用于检测配置变更
+
+
+def reset_client():
+    """
+    # [I16 通信] 重置客户端（用于配置热更新）
+    """
+    global _client, _review_client, _client_config_hash
+    _client = None
+    _review_client = None
+    _client_config_hash = ""
+
+
+def _get_config_hash() -> str:
+    """
+    # [I16 通信] 获取当前配置的哈希值，用于检测配置变更
+    """
+    settings = get_settings()
+    return f"{settings.DEEPSEEK_API_KEY}:{settings.DEEPSEEK_BASE_URL}:{settings.DEEPSEEK_MODEL}"
 
 
 def init_client() -> OpenAI:
     """
-    # [I16 通信] 初始化 DeepSeek 客户端
+    # [I16 通信] 初始化 DeepSeek 客户端（支持热更新）
 
     Returns:
         OpenAI: OpenAI 兼容客户端实例
 
     # [F12 捕获] 客户端初始化异常处理
     """
-    global _client
+    global _client, _client_config_hash
 
-    if _client is not None:
+    # [I16 通信] 检查配置是否已变更（热更新支持）
+    current_hash = _get_config_hash()
+    if _client is not None and _client_config_hash == current_hash:
         return _client
 
     # [I15 存储] 读取 API 配置
@@ -234,6 +373,7 @@ def init_client() -> OpenAI:
             base_url=settings.DEEPSEEK_BASE_URL,
             timeout=30.0  # [I16 通信] 全局超时设置
         )
+        _client_config_hash = current_hash  # 更新配置哈希
         logging.info("DeepSeek 客户端初始化成功")
         return _client
 
@@ -430,8 +570,23 @@ def analyze_full_document(markdown_content: str, original_text: str) -> str:
 
         content = response.choices[0].message.content
         if not content:
-            logging.warning("整体分析 AI 返回空内容")
-            return ""
+            logging.warning(f"整体分析 AI 返回空内容，原始响应: {response}")
+            # 重试一次
+            logging.info("整体分析重试...")
+            response = client.chat.completions.create(
+                model=review_model,
+                messages=[
+                    {"role": "system", "content": "你是一个专业的会议记录分析师，擅长深度分析录音内容和修正质量。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=4000,
+                timeout=120.0
+            )
+            content = response.choices[0].message.content
+            if not content:
+                logging.warning("整体分析重试后仍返回空内容，跳过分析")
+                return ""
 
         content = content.strip()
         logging.debug(f"整体分析响应: {content[:200]}")
@@ -562,9 +717,25 @@ def summarize_full_text(sentences: List[str]) -> str:
 
 注意：只返回 JSON，不要包含任何其他内容。"""
 
-    # [I16 通信] 获取客户端
+    # [I16 通信] 获取客户端（支持热更新）
     client = get_client()
     settings = get_settings()
+
+    # [I16 通信] 获取限流令牌
+    wait_time = _rate_limiter.get_wait_time()
+    if wait_time > 0:
+        logging.info(f"限流保护：等待 {wait_time:.1f} 秒后继续...")
+        time.sleep(wait_time)
+
+    if not _rate_limiter.acquire(timeout=120.0):
+        logging.warning("限流保护：等待超时，跳过全文总结")
+        return ""
+
+    # [I16 通信] 获取并发令牌
+    acquired = _api_semaphore.acquire(timeout=120.0)
+    if not acquired:
+        logging.warning("并发控制：等待超时，跳过全文总结")
+        return ""
 
     try:
         response = client.chat.completions.create(
@@ -606,6 +777,8 @@ def summarize_full_text(sentences: List[str]) -> str:
     except Exception as e:
         logging.warning(f"获取全文总结失败: {e}")
         return ""
+    finally:
+        _api_semaphore.release()
 
 
 def correct_sentence(sentence: str, index: int, context: str = None, all_sentences: List[str] = None, full_text_summary: str = None) -> CorrectionResult:
@@ -663,13 +836,41 @@ def correct_sentence(sentence: str, index: int, context: str = None, all_sentenc
 
 注意：analysis 字段中如需引用文字，请使用单引号 ' 而非双引号 ""，确保 JSON 格式正确。"""
 
-    # [I16 通信] 获取客户端
+    # [I16 通信] 获取客户端（支持热更新）
     client = get_client()
     settings = get_settings()
 
-    # [I16 通信] 调用 DeepSeek API
-    # [F12 捕获] API 调用异常处理
+    # [I16 通信] 获取限流令牌
+    wait_time = _rate_limiter.get_wait_time()
+    if wait_time > 0:
+        logging.debug(f"限流保护：等待 {wait_time:.1f} 秒...")
+        time.sleep(wait_time)
+
+    if not _rate_limiter.acquire(timeout=180.0):
+        logging.warning(f"限流保护：等待超时 (第 {index+1} 句)")
+        # 返回原文作为降级方案
+        return CorrectionResult(
+            sentence_index=index,
+            original=to_simplified(sentence),
+            corrected=to_simplified(sentence),
+            analysis="限流等待超时，使用原文"
+        )
+
+    # [I16 通信] 获取并发令牌（限制同时进行的 API 调用数）
+    acquired = _api_semaphore.acquire(timeout=180.0)
+    if not acquired:
+        logging.warning(f"并发控制：等待超时 (第 {index+1} 句)")
+        # 返回原文作为降级方案
+        return CorrectionResult(
+            sentence_index=index,
+            original=to_simplified(sentence),
+            corrected=to_simplified(sentence),
+            analysis="并发等待超时，使用原文"
+        )
+
     try:
+        # [I16 通信] 调用 DeepSeek API
+        # [F12 捕获] API 调用异常处理
         response = client.chat.completions.create(
             model=settings.DEEPSEEK_MODEL,
             messages=[
@@ -692,6 +893,8 @@ def correct_sentence(sentence: str, index: int, context: str = None, all_sentenc
         # [I13 渲染] 记录错误日志
         logging.error(f"DeepSeek API 调用失败 (第 {index+1} 句): {e}")
         raise RuntimeError(f"API 调用失败: {e}")
+    finally:
+        _api_semaphore.release()
 
     # 解析响应
     data = _try_parse_json(content)
